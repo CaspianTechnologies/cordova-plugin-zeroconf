@@ -6,7 +6,8 @@
         "id": "cordova-plugin-zeroconf",
         "platforms": [
             "android",
-            "ios"
+            "ios",
+			"windows"
         ]
     },
     "repository": {

@@ -19,12 +19,7 @@ var getHostname = function (success, failure) {
 var watchers = {};
 
   var unwatch = function (success, failure, params) {
-    console.log('from unwatch')
     let [type, domain] = params;
-    console.log('type')
-    console.log(type)
-    console.log('domain')
-    console.log(domain)
 
     // remove trailing dot
     type = type.replace(/\.+$/, "");
@@ -42,8 +37,6 @@ var watchers = {};
         return;
     }
     var watchersToRemove = watchers[domain][type];
-    console.log('watchers to remove');
-    console.log(JSON.stringify(watchersToRemove));
     var numberOfWatchers = watchersToRemove.length;
     for (var index = 0; index != numberOfWatchers; ++index) {
         var watcher = watchersToRemove[index];
@@ -55,22 +48,14 @@ var watchers = {};
     if (success) {
         setImmediate(success);
     }
-
-    console.log('from end of unwatch')
 }
 
   var close = function (success, failure) {
-    console.log('from close');
-    console.log('watchers: ')
-    console.log(JSON.stringify(watchers));
     for (var domain in watchers) {
-      console.log('domain');
-      console.log(domain);
         for (var type in watchers[domain]) {
           unwatch(success, failure, [type, domain]);
         }
     }
-    console.log('from end of close')
 }
 
 var watch = function (success, failure, params) {

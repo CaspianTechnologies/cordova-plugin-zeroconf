@@ -141,7 +141,7 @@ var watch = function (success, failure, params) {
                 result.service.txtRecord[pair[0]] = pair[1];
             }
             result.service.txtRecord['name'] = device.name;
-            success(result);
+            success(result, { keepCallback: true });
         }
     }
 

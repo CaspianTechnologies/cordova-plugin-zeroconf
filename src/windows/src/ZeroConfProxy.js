@@ -1,7 +1,7 @@
 /*global Windows:true */
 var enumeration = Windows.Devices.Enumeration;
-
 var DnsSdProtocol = "4526e8c1-8aac-4153-9b16-55e86ada0e54";
+var watchers = {};
 
 // Filter results by domain and service name
 var getHostname = function (success, failure) {
@@ -16,59 +16,29 @@ var getHostname = function (success, failure) {
     }
 }
 
-var watchers = {};
+var register = function (type, domain, name, port, props, success, failure) {
+    success();
+}
 
-  var unwatch = function (success, failure, params) {
+var unregister = function (type, domain, name, success, failure) {
+    success();
+}
+
+var stop = function (success, failure) {
+    success();
+}
+
+var watch = function (success, failure, params) {
     let [type, domain] = params;
 
     // remove trailing dot
     type = type.replace(/\.+$/, "");
     domain = domain.replace(/\.+$/, "");
-    if (!watchers[domain]) {
-        if (failure) {
-            setImmediate(failure, "domain: '" + domain + "' not used");
-        }
-        return;
-    }
-    if (!watchers[domain][type]) {
-        if (failure) {
-            setImmediate(failure, "type: '" + type + "' not used in domain: '" + domain + "'");
-        }
-        return;
-    }
-    var watchersToRemove = watchers[domain][type];
-    var numberOfWatchers = watchersToRemove.length;
-    for (var index = 0; index != numberOfWatchers; ++index) {
-        var watcher = watchersToRemove[index];
-        if (!watcher.status === Windows.Devices.Enumeration.DeviceWatcherStatus.stopped)
-          watcher.stop();
-    }
-    watchers[domain][type] = [];
 
-    if (success) {
-        setImmediate(success);
-    }
-}
-
-  var close = function (success, failure) {
-    for (var domain in watchers) {
-        for (var type in watchers[domain]) {
-          unwatch(success, failure, [type, domain]);
-        }
-    }
-}
-
-var watch = function (success, failure, params) {
-  let [type, domain] = params;
-
-  // remove trailing dot
-  type = type.replace(/\.+$/, "");
-  domain = domain.replace(/\.+$/, "");
-
-  // var queryString = "System.Devices.AepService.ProtocolId:={" + DnsSdProtocol + "} AND " + "System.Devices.Dnssd.Domain:=\"local.\" AND System.Devices.Dnssd.ServiceName:=\"_spatium._tcp.\"";
-  //var queryString = "System.Devices.AepService.ProtocolId:={" + DnsSdProtocol + "}";
-  var queryString =  `System.Devices.AepService.ProtocolId:="{4526e8c1-8aac-4153-9b16-55e86ada0e54}" AND ` +
-    `System.Devices.Dnssd.Domain:="${domain}" AND System.Devices.Dnssd.ServiceName:="${type}"`;
+    // var queryString = "System.Devices.AepService.ProtocolId:={" + DnsSdProtocol + "} AND " + "System.Devices.Dnssd.Domain:=\"local.\" AND System.Devices.Dnssd.ServiceName:=\"_spatium._tcp.\"";
+    //var queryString = "System.Devices.AepService.ProtocolId:={" + DnsSdProtocol + "}";
+    var queryString = `System.Devices.AepService.ProtocolId:="{4526e8c1-8aac-4153-9b16-55e86ada0e54}" AND ` +
+        `System.Devices.Dnssd.Domain:="${domain}" AND System.Devices.Dnssd.ServiceName:="${type}"`;
 
     // Start a watcher with the query string, and request other properties (discover & resolve)
     //https://docs.microsoft.com/en-us/windows/uwp/devices-sensors/enumerate-devices-over-a-network
@@ -99,7 +69,7 @@ var watch = function (success, failure, params) {
             var device = sender.detail[i];
             var actionType = sender.type;
             if (actionType === 'added') {
-              actionType = 'resolved';
+                actionType = 'resolved';
             }
             var result = {
                 action: actionType,
@@ -130,7 +100,7 @@ var watch = function (success, failure, params) {
                 result.service.txtRecord[pair[0]] = pair[1];
             }
             result.service.txtRecord['name'] = device.name;
-            success(result, { keepCallback: true });
+            success(result, {keepCallback: true});
         }
     }
 
@@ -140,17 +110,67 @@ var watch = function (success, failure, params) {
     watcher.addEventListener("removed", publishChange);
     watcher.addEventListener("updated", publishChange);
     watcher.addEventListener("enumerationcompleted",
-        function () { });
-    watcher.addEventListener("stopped", function () { });
+        function () {
+        });
+    watcher.addEventListener("stopped", function () {
+    });
     // Start enumerating and listening for events
     watcher.start();
 };
 
+var unwatch = function (success, failure, params) {
+    let [type, domain] = params;
+
+    // remove trailing dot
+    type = type.replace(/\.+$/, "");
+    domain = domain.replace(/\.+$/, "");
+    if (!watchers[domain]) {
+        if (failure) {
+            setImmediate(failure, "domain: '" + domain + "' not used");
+        }
+        return;
+    }
+    if (!watchers[domain][type]) {
+        if (failure) {
+            setImmediate(failure, "type: '" + type + "' not used in domain: '" + domain + "'");
+        }
+        return;
+    }
+    var watchersToRemove = watchers[domain][type];
+    var numberOfWatchers = watchersToRemove.length;
+    for (var index = 0; index != numberOfWatchers; ++index) {
+        var watcher = watchersToRemove[index];
+        if (!watcher.status === Windows.Devices.Enumeration.DeviceWatcherStatus.stopped)
+            watcher.stop();
+    }
+    watchers[domain][type] = [];
+
+    if (success) {
+        setImmediate(success);
+    }
+}
+
+var close = function (success, failure) {
+    for (var domain in watchers) {
+        for (var type in watchers[domain]) {
+            unwatch(success, failure, [type, domain]);
+        }
+    }
+}
+
+var reInit = function (success, failure) {
+    success();
+}
+
 module.exports = {
-    watch:watch,
-    unwatch:unwatch,
-    close:close,
-    getHostname:getHostname
+    getHostname: getHostname,
+    register: register,
+    unregister: unregister,
+    stop: stop,
+    watch: watch,
+    unwatch: unwatch,
+    close: close,
+    reInit: reInit
 };
 
-require("cordova/exec/proxy").add("ZeroConf",module.exports);
+require("cordova/exec/proxy").add("ZeroConf", module.exports);
